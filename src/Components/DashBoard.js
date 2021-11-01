@@ -1,57 +1,131 @@
-import * as React from 'react';
-import AppBar from '@mui/material/AppBar';
-import Button from '@mui/material/Button';
-//import CameraIcon from '@mui/icons-material/PhotoCamera';
-import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
-import CssBaseline from '@mui/material/CssBaseline';
-import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
-import Link from '@mui/material/Link';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { useState, useEffect } from "react";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActions from "@mui/material/CardActions";
+import CardContent from "@mui/material/CardContent";
+import CardMedia from "@mui/material/CardMedia";
+import CssBaseline from "@mui/material/CssBaseline";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import LinearProgress from '@mui/material/LinearProgress';
+import FeedBackAlert from "./FeedBackAlert";
+import CustomAppBar from "./CustomAppBar";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
-function Copyright() {
-  return (
-    <Typography variant="body2" color="text.secondary" align="center">
-      {'Copyright © '}
-      <Link color="inherit" href="https://mui.com/">
-        Your Website
-      </Link>{' '}
-      {new Date().getFullYear()}
-      {'.'}
-    </Typography>
-  );
-}
-
-const cards = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+//pop up dialog
+import PopUpForm from "./PopUpForm";
 
 const theme = createTheme();
 
 export default function Album() {
+  const [err, setErr] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [responseObject, setResponseObject]=useState({});
+  //control pop up
+  const [formOpen, setFormOpen] = useState(false);
+  const [formErr, setFormErr] = useState(false);
+  const [reFetch, setReFetch] = useState(false);
+  //Alert
+  const [openAlert, setOpenAlert] = useState(false);
+  //Update
+  const [classInfo, setClassInfo] = useState({});
+
+  const handleCloseAlert = (event, reason) => {
+    setOpenAlert(false);
+  };
+  //test
+  const handleOpenForm = () => {
+    setFormOpen(true);
+  };
+  const handleCloseForm = () => {
+    setFormOpen(false);
+    setFormErr(false);
+    setClassInfo({});
+  };
+  const handleChange = ()=>{
+    setFormErr(false);
+  }
+  const handleSubmit = (evt)=>{
+    evt.preventDefault();
+    const className = document.querySelector("#className").value;
+    console.log(className);
+    console.log("Submited!", className);
+    if(!className) {
+      setFormErr(true);
+      return
+    }
+    else{
+      const formNodes = document.querySelectorAll("#myform input");
+      const formData = new URLSearchParams();
+      formNodes.forEach(ele=>formData.append(ele.name,ele.value));
+      const postForm = async()=>{
+        try{
+          const responseFromPost = await fetch("http://localhost:5000/api/classes",{method:"POST", body: formData})
+          const response = await responseFromPost.json();
+          console.log("Di vao phan text\n", response);
+          setFormOpen(false);
+          setResponseObject(response);
+          setOpenAlert(true);
+          setReFetch(!reFetch);
+        }
+        catch(error){
+          console.log("Di vao phan catch\n", error)
+          setErr(error);
+        }
+      }
+      postForm();
+    }
+  }
+  const fetchInfoOfAClass = async(classID)=>{
+    try{
+      const responseFromGet = await fetch(`http://localhost:5000/api/classes/${classID}`)
+      const response = await responseFromGet.json();
+      setClassInfo(response);
+      setFormOpen(true);
+    }
+    catch(error){
+      console.log("Da xay ra loi", error);
+      setErr(error);
+    }
+  }
+
+  const sleep = (ms)=>{
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+  useEffect(() => {
+    const doFetch = async () => {
+      setIsLoaded(false);
+      await sleep(1000);
+      try {
+        const fetchedData = await fetch("http://localhost:5000/api/classes");
+        const data = await fetchedData.json();
+        setIsLoaded(true); 
+        setClasses(data);
+      } catch (error) {
+        setIsLoaded(true);
+        setErr(error);
+      }
+    };
+    doFetch();
+  }, [reFetch]);
+  
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="relative">
-        <Toolbar>
-          {/* <CameraIcon sx={{ mr: 2 }} /> */}
-          <Typography variant="h6" color="inherit" noWrap>
-            Album layout
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      <main>
+      <CustomAppBar/>
+      <div>
         {/* Hero unit */}
         <Box
           sx={{
-            bgcolor: 'background.paper',
+            //background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)",
+            bgcolor: "background.paper",
             pt: 8,
-            pb: 6,
+            // pb: 1,
           }}
         >
           <Container maxWidth="sm">
@@ -62,12 +136,7 @@ export default function Album() {
               color="text.primary"
               gutterBottom
             >
-              Album layout
-            </Typography>
-            <Typography variant="h5" align="center" color="text.secondary" paragraph>
-              Something short and leading about the collection below—its contents,
-              the creator, etc. Make it short and sweet, but not too short so folks
-              don&apos;t simply skip over it entirely.
+              Classroom Dashboard
             </Typography>
             <Stack
               sx={{ pt: 4 }}
@@ -75,63 +144,133 @@ export default function Album() {
               spacing={2}
               justifyContent="center"
             >
-              <Button variant="contained">Main call to action</Button>
-              <Button variant="outlined">Secondary action</Button>
+              <div>
+                <Button variant="outlined" onClick={handleOpenForm}>
+                  Create a class
+                </Button>
+                <PopUpForm 
+                  formName="Create a class"
+                  actionName="Create"
+                  open={formOpen}
+                  handleClose={handleCloseForm}
+                  handleSubmit={handleSubmit}
+                  formErr={formErr}
+                  handleChange={handleChange}
+                  classInfo={classInfo}
+                />
+              </div>
+              <Button variant="outlined">Join a class</Button>
             </Stack>
+            <FeedBackAlert openAlert={openAlert} messageObject={responseObject} onCloseAlert={handleCloseAlert}></FeedBackAlert>
           </Container>
         </Box>
-        <Container sx={{ py: 8 }} maxWidth="md">
+        <Container sx={{ py: 8 }} maxWidth="lg">
           {/* End hero unit */}
-          <Grid container spacing={4}>
-            {cards.map((card) => (
-              <Grid item key={card} xs={12} sm={6} md={4}>
-                <Card
-                  sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                >
-                  <CardMedia
-                    component="img"
+          {err ? (
+            <Typography
+              component="div"
+              variant="h6"
+              align="center"
+              color="error"
+              gutterBottom
+            >
+              Error: {err.message}
+            </Typography>
+          ) : !isLoaded ? (
+            <>
+              <LinearProgress />
+              <LinearProgress sx={{my:"10px"}}/>
+              <LinearProgress />
+            </>
+          ) : (
+            <Grid container spacing={5}>
+              {classes.map((ele, index) => (
+                <Grid item key={index} xs={12} sm={6} md={4} lg={3}>
+                  <Card
                     sx={{
-                      // 16:9
-                      pt: '56.25%',
+                      height: "100%",
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      borderRadius: "25px",
+                      "&:hover": {
+                        boxShadow:
+                          "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
+                      },
+                      position: "relative",
                     }}
-                    image="https://source.unsplash.com/random"
-                    alt="random"
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography gutterBottom variant="h5" component="h2">
-                      Heading
-                    </Typography>
-                    <Typography>
-                      This is a media card. You can use this section to describe the
-                      content.
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button size="small">View</Button>
-                    <Button size="small">Edit</Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+                  >
+                    <CardMedia
+                      component="div"
+                      sx={{
+                        background: `url(https://picsum.photos/300/200?random=${ele.id})`,
+                        height: "200px",
+                        width: "100%",
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <Box sx={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  width: "100%",
+                                  padding: "20px 10px",
+                                  background: "inherit",
+                                  overflow: "hidden",
+                                  "&::before":{content: '""',
+                                              position: "absolute",
+                                              top: 0,
+                                              left: 0,
+                                              width: "200%",
+                                              height: "200%",
+                                              background: "inherit",
+                                              WebkitFilter: "blur(4px)",
+                                              filter: "blur(4px)"},
+                                  "&::after":  {content: '""',
+                                              position: "absolute",
+                                              top: 0,
+                                              left: 0,
+                                              width: "100%",
+                                              height: "100%",
+                                              background: "rgba(0, 0, 0, 0.3)"}
+                                }}
+                      >
+                        <Typography
+                          variant="h5"
+                          sx={{margin: 0,
+                            color: "background.paper",
+                            position: "relative",
+                            zIndex: 1}}
+                        >
+                          {ele.className}
+                        </Typography>
+                      </Box>
+                    </CardMedia>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <Typography>
+                        <strong>Section: </strong>
+                        {ele.classSection}
+                        <br />
+                        <strong>Subject: </strong>
+                        {ele.subject}
+                        <br />
+                        <strong>Room: </strong>
+                        {ele.room}
+                        <br />
+                      </Typography>
+                    </CardContent>
+                    <CardActions>
+                      <Button size="small">View</Button>
+                      <Button size="small" onClick={()=>fetchInfoOfAClass(ele.id)}>Edit</Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Container>
-      </main>
-      {/* Footer */}
-      <Box sx={{ bgcolor: 'background.paper', p: 6 }} component="footer">
-        <Typography variant="h6" align="center" gutterBottom>
-          Footer
-        </Typography>
-        <Typography
-          variant="subtitle1"
-          align="center"
-          color="text.secondary"
-          component="p"
-        >
-          Something here to give the footer a purpose!
-        </Typography>
-        <Copyright />
-      </Box>
-      {/* End footer */}
+      </div>
     </ThemeProvider>
   );
 }

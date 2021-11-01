@@ -2,13 +2,14 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 //import App from "./App";
-import Test from "./Components/Test";
+//import Test from "./Components/Test";
+import Album from "./Components/DashBoard";
 //import Album from "./Components/DashBoard";
 import reportWebVitals from "./reportWebVitals";
 
 ReactDOM.render(
   <React.StrictMode>
-    <Test />
+    <Album />
   </React.StrictMode>,
   document.getElementById("root")
 );
