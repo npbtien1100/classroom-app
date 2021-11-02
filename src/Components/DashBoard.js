@@ -18,6 +18,8 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 //pop up dialog
 import PopUpForm from "./PopUpForm";
 
+const api_url = "https://classroom-api.azurewebsites.net/api"; //http://localhost:5000/api;
+
 const theme = createTheme();
 
 export default function Album() {
@@ -64,7 +66,7 @@ export default function Album() {
       formNodes.forEach(ele=>formData.append(ele.name,ele.value));
       const postForm = async()=>{
         try{
-          const responseFromPost = await fetch("http://localhost:5000/api/classes",{method:"POST", body: formData})
+          const responseFromPost = await fetch(`${api_url}/classes`,{method:"POST", body: formData})
           const response = await responseFromPost.json();
           console.log("Di vao phan text\n", response);
           setFormOpen(false);
@@ -73,7 +75,8 @@ export default function Album() {
           setReFetch(!reFetch);
         }
         catch(error){
-          console.log("Di vao phan catch\n", error)
+          console.log("Di vao phan catch\n", error);
+          setFormOpen(false);
           setErr(error);
         }
       }
@@ -82,7 +85,7 @@ export default function Album() {
   }
   const fetchInfoOfAClass = async(classID)=>{
     try{
-      const responseFromGet = await fetch(`http://localhost:5000/api/classes/${classID}`)
+      const responseFromGet = await fetch(`${api_url}/classes/${classID}`)
       const response = await responseFromGet.json();
       setClassInfo(response);
       setFormOpen(true);
@@ -102,7 +105,7 @@ export default function Album() {
       setIsLoaded(false);
       await sleep(1000);
       try {
-        const fetchedData = await fetch("http://localhost:5000/api/classes");
+        const fetchedData = await fetch(`${api_url}/classes`);
         const data = await fetchedData.json();
         setIsLoaded(true); 
         setClasses(data);
